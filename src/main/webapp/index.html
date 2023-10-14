@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css"
+          integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
+    <title>Public Blog</title>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <a class="navbar-brand" href="#">Public Blog</a>
+    <button id="pb" class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+</nav>
+<div id="mainDiv">
+</div>
+
+</body>
+</html>
+<style>
+    .posts{
+        border: 2px solid black;
+        width: 100%;
+        padding-left: 24px;
+        padding-right: 24px;
+        padding-bottom: 12px;
+        margin-bottom: 8px;
+    }
+    #mainDiv{
+        margin-top: 32px;
+        margin-left: 256px;
+        margin-right: 256px;
+    }
+    #newPostBtn{
+        margin-top: 32px;
+    }
+</style>
+<script>
+    const mainDiv = document.getElementById("mainDiv");
+    fetch('/api/posts', {
+        method: 'GET'
+    }).then(response => {
+        return response.json();
+    }).then(posts => {
+        for (const post of posts) {
+            const postInfo = document.createElement("div");
+            postInfo.style.marginBottom = "12px";
+            postInfo.style.marginTop = "8px";
+            postInfo.id = "postInfoDiv";
+            const dateDiffP = document.createElement("p");
+            let tekst = "";
+            if (post.content.length >= 320){
+                tekst = post.content.substr(0,320);
+            } else
+                tekst = post.content;
+            tekst += "...";
+            tekst = tekst.replace(/(\r\n|\n|\r)/gm, "");
+            const postDiv = document.createElement("div");
+            const postTitle = document.createElement("h3");
+            postTitle.style.fontWeight = 'bold';
+            postTitle.innerText = post.title;
+            postTitle.style = "display: inline;\n" +
+                "    vertical-align: top;\n"+
+                "line-height: 28px";
+            dateDiffP.style = "display: inline;\n" +
+                "    vertical-align: top;\n"+
+                "line-height: 28px";
+            dateDiffP.style.float = "right";
+            const dateArray = post.date.split("-");
+            const dateYear = dateArray[2];
+            const dateMonth = dateArray[1];
+            const dateDay = dateArray[0];
+            const stringDate = dateYear.toString() + "-" + dateMonth.toString() + "-" + dateDay.toString();
+            const postD = new Date(stringDate);
+            //dateDiffP.innerText = post.date.replaceAll("-", ".");
+            const dateNow = new Date();
+            const diffTime = Math.abs(dateNow - postD);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            let toShowDiff = "";
+
+            if (diffDays === 0 || diffDays === 1){
+                toShowDiff = "today";
+            }
+            else if (diffDays <= 30){
+                toShowDiff = diffDays.toString() + " days ago";
+            }
+
+            if (diffDays / 30 === 1){
+                console.log(post.title+ " if /30===1")
+                toShowDiff = "about 1 month ago";
+            }
+            if (diffDays / 30 > 1 && diffDays / 30 < 12){
+                console.log(post.title+ " if /30>1")
+                toShowDiff = "about " + Math.floor(diffDays/30) + " months ago";
+            }
+            if (diffDays / 365 >= 1 && diffDays / 365 <= 2){
+                console.log(post.title+ " if /365===1")
+                toShowDiff = "about a year ago";
+            }
+            else if (diffDays / 365 > 2){
+                console.log(post.title+ " if /365>2")
+                toShowDiff = "about " + Math.floor(diffDays/365) + " years ago";
+            }
+            console.log(post.title + diffDays);
+            if (isNaN(diffDays)){
+                toShowDiff = "today";
+            }
+            dateDiffP.innerText = toShowDiff;
+            dateDiffP.style.color = "gray";
+            const postAuthor = document.createElement("h5");
+            postAuthor.innerText = post.author;
+            const postContent = document.createElement("p");
+            postContent.innerText = tekst;
+            const viewBtn = document.createElement("button");
+            viewBtn.innerText='Read article';
+            viewBtn.classList.add('btn', 'btn-outline-secondary');
+            viewBtn.onclick = function (e) {
+                console.log("KLIKNUTO na post:" + post.id);
+                displayPost(post);
+            };
+            //postDiv.appendChild(postTitle);
+            postInfo.appendChild(postTitle);
+            postInfo.appendChild(dateDiffP);
+            postDiv.appendChild(postInfo);
+            postDiv.appendChild(postAuthor);
+            postDiv.appendChild(postContent);
+            postDiv.appendChild(viewBtn);
+            postDiv.classList.add("posts");
+            mainDiv.appendChild(postDiv);
+        }
+        const newPostBtn = document.createElement("button");
+        newPostBtn.classList.add("btn", "btn-primary");
+        newPostBtn.id = "newPostBtn";
+        newPostBtn.innerText = "New post";
+        newPostBtn.style.marginBottom = "32px";
+        newPostBtn.onclick = function (e) {
+            addPost();
+        };
+        mainDiv.appendChild(newPostBtn);
+    })
+
+    function addPost(){
+        removeAllChildNodes(mainDiv);
+        const backBtn = document.createElement("button");
+        backBtn.innerText = "Back";
+        backBtn.classList.add("btn", "btn-outline-danger");
+        backBtn.style.marginBottom = '32px';
+        backBtn.onclick = function (e) {
+            helperLoad();
+        }
+        mainDiv.appendChild(backBtn);
+
+        const form = document.createElement("form");
+        form.style.marginLeft = '96px';
+        form.style.marginRight = '96px';
+        const formGroup1 = document.createElement("div");
+        formGroup1.classList.add("form-group");
+        const labelAuthor = document.createElement("label");
+        labelAuthor.htmlFor = "authorInput";
+        labelAuthor.innerText = "Author";
+        const authorInput = document.createElement("input");
+        authorInput.classList.add("form-control");
+        authorInput.id = "authorInput";
+        authorInput.placeholder = "Enter author's name";
+        formGroup1.appendChild(labelAuthor);
+        formGroup1.appendChild(authorInput);
+        form.appendChild(formGroup1);
+        const formGroup2 = document.createElement("div");
+        formGroup2.classList.add("form-group");
+        const labelTitle = document.createElement("label");
+        labelTitle.htmlFor = "titleInput";
+        labelTitle.innerText = "Title";
+        const titleInput = document.createElement("input");
+        titleInput.classList.add("form-control");
+        titleInput.id = "titleInput";
+        titleInput.placeholder = "Enter a title for the post";
+        formGroup2.appendChild(labelTitle);
+        formGroup2.appendChild(titleInput);
+        form.appendChild(formGroup2);
+        const formGroup3 = document.createElement("div");
+        formGroup3.classList.add("form-group");
+        const contentTxtArea = document.createElement("textarea");
+        contentTxtArea.id = "contentTxtArea";
+        contentTxtArea.classList.add("form-control");
+        contentTxtArea.rows = 4;
+        contentTxtArea.placeholder = "Enter text for the post";
+        formGroup3.appendChild(contentTxtArea);
+        form.appendChild(formGroup3);
+
+
+        const submitButton = document.createElement("button");
+        submitButton.classList.add("btn", "btn-primary");
+        submitButton.innerText = "Create post";
+        submitButton.onclick = function (e) {
+            e.preventDefault();
+            if (authorInput.value == "" || titleInput.value == "" || contentTxtArea.value == "")
+                alert("All fields are required!");
+            else
+                addPostToDB(authorInput.value, titleInput.value, contentTxtArea.value)
+        }
+        form.appendChild(submitButton);
+        mainDiv.appendChild(form);
+
+
+    }
+    function addPostToDB(author, title, content){
+        fetch('/api/posts/', {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                author: author,
+                title: title,
+                content: content
+            })
+        }).then(response => {
+            return response.json()
+        }).then( data => {
+            helperLoad();
+        });
+    }
+
+    function displayPost(post){
+        console.log("display post")
+        removeAllChildNodes(mainDiv);
+        mainDiv.style.marginLeft = "256px";
+        mainDiv.style.marginRight = "256px";
+        const backBtn = document.createElement("button");
+        backBtn.innerText = "Back";
+        backBtn.classList.add("btn", "btn-outline-danger");
+        backBtn.style.marginBottom = '32px';
+        backBtn.onclick = function (e) {
+            helperLoad();
+        }
+        mainDiv.appendChild(backBtn);
+
+        const postTitle = document.createElement("h1");
+        postTitle.innerText = post.title;
+        const postDate = document.createElement("p");
+        postDate.innerText = post.date.replaceAll("-", ".");
+        postDate.style.color = "gray";
+        const postAuthor = document.createElement("p");
+        postAuthor.innerText = post.author;
+        postAuthor.style.fontWeight = "600";
+        const postContent = document.createElement("p");
+        postContent.innerText = post.content;
+        const postDiv = document.createElement("div");
+        postDiv.style.marginLeft = "12px";
+        postDiv.style.marginRight = "12px";
+        postDiv.style.marginBottom = "32px";
+        postDiv.appendChild(postTitle);
+        postDiv.appendChild(postDate);
+        postDiv.appendChild(postAuthor);
+        postDiv.appendChild(postContent);
+        mainDiv.appendChild(postDiv);
+
+        //comments
+        const commentsDiv = document.createElement("div");
+        commentsDiv.id = "commentsDiv";
+        commentsDiv.style.marginLeft = "12px";
+        commentsDiv.style.marginRight = "12px";
+        commentsDiv.style.marginBottom = "32px";
+        const commentsHeading = document.createElement("h3");
+        commentsHeading.innerText = "Comments";
+        commentsDiv.appendChild(commentsHeading);
+        const br = document.createElement("br");
+        commentsDiv.appendChild(br);
+        fetch("/api/comments/" + post.id, {
+            method: "GET"
+        }).then( response => {
+            return response.json();
+        }).then( pComments => {
+            for (const comment of pComments){
+                const name = document.createElement("h5");
+                name.innerText = comment.name;
+                const text = document.createElement("p");
+                text.innerText = comment.text;
+                commentsDiv.appendChild(name);
+                commentsDiv.appendChild(text);
+                commentsDiv.appendChild(br);
+            }
+        })
+        mainDiv.appendChild(commentsDiv);
+        //forma za dodavanje komentara
+        const form = document.createElement("form");
+        form.style.marginRight = "128px";
+        const newCommentHeading = document.createElement("h4");
+        newCommentHeading.innerText = "New comment";
+        form.appendChild(newCommentHeading);
+        const formGroup1 = document.createElement("div");
+        formGroup1.classList.add("form-group");
+        const labelName = document.createElement("label");
+        labelName.htmlFor = "nameInput";
+        labelName.innerText = "Name";
+        const nameInput = document.createElement("input");
+        nameInput.classList.add("form-control");
+        nameInput.id = "nameInput";
+        nameInput.placeholder = "Enter your name";
+        formGroup1.appendChild(labelName);
+        formGroup1.appendChild(nameInput);
+        form.appendChild(formGroup1);
+        const formGroup3 = document.createElement("div");
+        formGroup3.classList.add("form-group");
+        const textTxtArea = document.createElement("textarea");
+        textTxtArea.id = "textTxtArea";
+        textTxtArea.classList.add("form-control");
+        textTxtArea.rows = 3;
+        textTxtArea.placeholder = "Enter your comment";
+        formGroup3.appendChild(textTxtArea);
+        form.appendChild(formGroup3);
+        const submitButton = document.createElement("button");
+        submitButton.classList.add("btn", "btn-primary");
+        submitButton.style.marginBottom = "64px";
+        submitButton.innerText = "Post comment";
+        submitButton.onclick = function (e) {
+            e.preventDefault();
+            if (nameInput.value == "" || textTxtArea.value == "")
+                alert("All fields are required!");
+            else{
+                addComentToPost(post.id, nameInput.value, textTxtArea.value);
+                nameInput.value = "";
+                textTxtArea.value = "";
+            }
+        }
+        form.appendChild(submitButton);
+
+        mainDiv.appendChild(form);
+    }
+
+    function addComentToPost(postId, name, text){
+        fetch("/api/comments/"+postId, {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                postId: postId,
+                name: name,
+                text: text
+            })
+        }).then( response =>{
+            return response.json();
+        }).then( comment => {
+            const name = document.createElement("h5");
+            name.innerText = comment.name;
+            const text = document.createElement("p");
+            text.innerText = comment.text;
+            const commentsDiv = document.getElementById("commentsDiv");
+            commentsDiv.appendChild(name);
+            commentsDiv.appendChild(text);
+            const br = document.createElement("br");
+            commentsDiv.appendChild(br);
+        });
+    }
+
+    function removeAllChildNodes(parent) {
+        while (parent.firstChild) {
+            parent.removeChild(parent.firstChild);
+        }
+    }
+
+    //funkcija koja ce pri dodavanju novog posta ili pri pritistku buttona back vratiti pocetni content stranice
+    function helperLoad(){
+        removeAllChildNodes(mainDiv);
+        fetch('/api/posts', {
+            method: 'GET'
+        }).then(response => {
+            return response.json();
+        }).then(posts => {
+            for (const post of posts) {
+                const postInfo = document.createElement("div");
+                postInfo.style.marginBottom = "12px";
+                postInfo.style.marginTop = "8px";
+                postInfo.id = "postInfoDiv";
+                const dateDiffP = document.createElement("p");
+                let tekst = "";
+                if (post.content.length >= 320){
+                    tekst = post.content.substr(0,320);
+                } else
+                    tekst = post.content;
+                tekst += "...";
+                tekst = tekst.replace(/(\r\n|\n|\r)/gm, "");
+                const postDiv = document.createElement("div");
+                const postTitle = document.createElement("h3");
+                postTitle.style.fontWeight = 'bold';
+                postTitle.innerText = post.title;
+                postTitle.style = "display: inline;\n" +
+                    "    vertical-align: top;\n"+
+                    "line-height: 28px";
+                dateDiffP.style = "display: inline;\n" +
+                    "    vertical-align: top;\n"+
+                    "line-height: 28px";
+                dateDiffP.style.float = "right";
+                const dateArray = post.date.split("-");
+                const dateYear = dateArray[2];
+                const dateMonth = dateArray[1];
+                const dateDay = dateArray[0];
+                const stringDate = dateYear.toString() + "-" + dateMonth.toString() + "-" + dateDay.toString();
+                const postD = new Date(stringDate);
+                //dateDiffP.innerText = post.date.replaceAll("-", ".");
+                const dateNow = new Date();
+                const diffTime = Math.abs(dateNow - postD);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                let toShowDiff = "";
+
+                if (diffDays === 0 || diffDays === 1){
+                    toShowDiff = "today";
+                }
+                else if (diffDays <= 30){
+                    toShowDiff = diffDays.toString() + " days ago";
+                }
+
+                if (diffDays / 30 === 1){
+                    console.log(post+ " if /30===1")
+                    toShowDiff = "about 1 month ago";
+                }
+                if (diffDays / 30 > 1 && diffDays / 30 < 12){
+                    console.log(post+ " if /30>1")
+                    toShowDiff = "about " + Math.floor(diffDays/30) + " months ago";
+                }
+                if (diffDays / 365 >= 1 && diffDays / 365 <= 2){
+                    console.log(post+ " if /365===1")
+                    toShowDiff = "about a year ago";
+                }
+                else if (diffDays / 365 > 2){
+                    console.log(post+ " if /365>2")
+                    toShowDiff = "about " + Math.floor(diffDays/365) + " years ago";
+                }
+                console.log(post.title + diffDays);
+                if (isNaN(diffDays)){
+                    toShowDiff = "today";
+                }
+                dateDiffP.innerText = toShowDiff;
+                dateDiffP.style.color = "gray";
+                const postAuthor = document.createElement("h5");
+                postAuthor.innerText = post.author;
+                const postContent = document.createElement("p");
+                postContent.innerText = tekst;
+                const viewBtn = document.createElement("button");
+                viewBtn.innerText='Read article';
+                viewBtn.classList.add('btn', 'btn-outline-secondary');
+                viewBtn.onclick = function (e) {
+                    console.log("KLIKNUTO na post:" + post.id);
+                    displayPost(post);
+                };
+                //postDiv.appendChild(postTitle);
+                postInfo.appendChild(postTitle);
+                postInfo.appendChild(dateDiffP);
+                postDiv.appendChild(postInfo);
+                postDiv.appendChild(postAuthor);
+                postDiv.appendChild(postContent);
+                postDiv.appendChild(viewBtn);
+                postDiv.classList.add("posts");
+                mainDiv.appendChild(postDiv);
+            }
+            const newPostBtn = document.createElement("button");
+            newPostBtn.classList.add("btn", "btn-primary");
+            newPostBtn.id = "newPostBtn";
+            newPostBtn.style.marginBottom = "32px";
+            newPostBtn.innerText = "New post";
+            newPostBtn.onclick = function (e) {
+                addPost();
+            };
+            mainDiv.appendChild(newPostBtn);
+        })
+    }
+</script>
